@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local IPv4 Address</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        .ipv4 {
+            font-size: 1.5em;
+            color: #0078D7;
+            margin-bottom: 20px;
+        }
+        .instructions {
+            font-size: 1.2em;
+            color: #333;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Get Your Local IPv4 Address</h1>
+    <p>Your Local IPv4 Address is:</p>
+    <p class="ipv4" id="ipv4">Fetching...</p>
+    <div class="instructions" id="connection-info" style="display: none;">
+        <p>You can connect to the client at: <strong id="client-info">IPv4:3000</strong></p>
+        <p>You can connect to the server at: <strong id="server-info">IPv4:3001</strong></p>
+    </div>
+
+    <script>
+        async function getLocalIPv4Address() {
+            const ipv4Display = document.getElementById('ipv4');
+            const connectionInfo = document.getElementById('connection-info');
+            const clientInfo = document.getElementById('client-info');
+            const serverInfo = document.getElementById('server-info');
+
+            try {
+                const pc = new RTCPeerConnection();
+                pc.createDataChannel(""); // Create a dummy channel
+
+                const candidates = new Set();
+                pc.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        const candidateInfo = event.candidate.candidate;
+                        const match = candidateInfo.match(/(\d+\.\d+\.\d+\.\d+)/);
+                        if (match && !candidates.has(match[0])) {
+                            candidates.add(match[0]);
+                            // Display the IPv4 address
+                            if (candidateInfo.includes("typ host")) {
+                                const ipv4 = match[0];
+                                ipv4Display.textContent = ipv4;
+
+                                // Update connection instructions
+                                clientInfo.textContent = `${ipv4}:3000`;
+                                serverInfo.textContent = `${ipv4}:3001`;
+
+                                connectionInfo.style.display = 'block';
+                                pc.close(); // Close the connection
+                            }
+                        }
+                    }
+                };
+
+                // Start the candidate gathering process
+                pc.createOffer().then(offer => pc.setLocalDescription(offer));
+            } catch (error) {
+                ipv4Display.textContent = "Unable to retrieve IP address.";
+                console.error("Error fetching IPv4 address:", error);
+            }
+        }
+
+        getLocalIPv4Address();
+    </script>
+</body>
+</html>
